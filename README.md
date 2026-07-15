@@ -6,7 +6,7 @@ I've the uploaded a version of the [OMEmoji dataset](https://huggingface.co/data
 ## Data 
 Second pass at classification accuracy improved from 85% to 95% by "seeding" emojis in each category! 😍
 
-## Category Labels
+### Category Labels
 
 | **Description** | **Label** |
 | --- | --- |

@@ -1,4 +1,5 @@
 # Fine-tune demo with controllable dataset size. No W&B. Single file. Transformers ≥ 4.46.
+# Credit to John Smith: https://huggingface.co/datasets/John6666/forum1/blob/main/ft_transformer_small_sentiment_analysis.md
 # python -m venv .venv
 # source .venv/bin/activate
 # pip install torch transformers accelerate peft datasets evaluate numpy

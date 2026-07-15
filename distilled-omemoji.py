@@ -2,7 +2,7 @@
 # Credit to John Smith: https://huggingface.co/datasets/John6666/forum1/blob/main/ft_transformer_small_sentiment_analysis.md
 # python -m venv .venv
 # source .venv/bin/activate
-# pip install torch transformers accelerate peft datasets evaluate numpy
+# pip install scikit-learn torch transformers accelerate peft datasets evaluate numpy
 # Docs:
 # Transformers seq. class. guide: https://huggingface.co/docs/transformers/en/tasks/sequence_classification
 # Trainer API + callbacks: https://huggingface.co/docs/transformers/en/trainer

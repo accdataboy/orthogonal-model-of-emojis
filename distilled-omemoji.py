@@ -24,10 +24,10 @@ import evaluate
 # --------- config ---------
 os.environ["WANDB_DISABLED"] = "true"     # hard-disable W&B
 TASK = os.environ.get("TASK", "emotion")  # "sentiment" (unused) or "emotion"
-MODEL = os.environ.get("MODEL", "distilbert/distilbert-base-uncased")
+MODEL = os.environ.get("MODEL", "distilbert/distilroberta-base")
 TRAIN_SAMPLES = int(os.environ.get("TRAIN_SAMPLES", "0"))  # 0 = full train
 EVAL_SAMPLES  = int(os.environ.get("EVAL_SAMPLES",  "0"))  # 0 = full val
-BATCH_TRAIN, BATCH_EVAL, EPOCHS, LR, SEED = 64, 64, 20, 1e-5, 42
+BATCH_TRAIN, BATCH_EVAL, EPOCHS, LR, SEED = 64, 64, 10, 1e-5, 42
 random.seed(SEED); np.random.seed(SEED); torch.manual_seed(SEED)
 
 def set_device():
@@ -47,10 +47,10 @@ def set_device():
 DEVICE = set_device()
 
 # --------- load raw dataset ---------
-raw = load_dataset("csv", data_files={"train":"data/train.csv","validation":"data/validation.csv"})
+raw = load_dataset("csv", data_files={"train":"data/train.csv","validation":"data/validation.csv","test":"data/test.csv"})
 # load_dataset("databoyface/ome-src-v5.2")
 raw = raw.class_encode_column("label")
-ds_train, ds_val = raw["train"], raw["validation"]
+ds_train, ds_val, ds_test = raw["train"], raw["validation"], raw["test"]
 label_names = raw["train"].features["label"].names
 
 # --------- optionally limit dataset size ---------
@@ -73,38 +73,30 @@ def map_sentiment(batch: Dict[str, Any]):
     x["labels"] = batch["label"]
     return x
 
-if TASK == "sentiment":
-    ds_train_tok = ds_train.map(map_sentiment, batched=True)
-    ds_val_tok   = ds_val.map(map_sentiment,   batched=True)
-else:
-    # cols = ds_train.column_names
-    ds_train_tok = ds_train.map(map_sentiment, batched=True)
-    ds_val_tok   = ds_val.map(map_sentiment,   batched=True)
+ds_train_tok = ds_train.map(map_sentiment, batched=True)
+ds_val_tok   = ds_val.map(map_sentiment,   batched=True)
 
 # --------- model ---------
 model = AutoModelForSequenceClassification.from_pretrained(
     MODEL, num_labels=num_labels, id2label=id2label, label2id=label2id
 )
-if TASK == "emotions":
-    model.config.problem_type = "single_label_classification"  
+
+model.config.problem_type = "single_label_classification"  
 
 # --------- metrics ---------
 acc = evaluate.load("accuracy"); f1 = evaluate.load("f1")
 def compute_metrics(eval_pred, thr=0.5):
     logits, labels = eval_pred
-    if TASK == "emotion":
-        preds = logits.argmax(-1)
-        return {
-            "accuracy": acc.compute(predictions=preds, references=labels)["accuracy"],
-            "f1_macro": f1.compute(predictions=preds, references=labels, average="macro")["f1"],
-        }
-    probs = 1/(1+np.exp(-logits))
-    preds = (probs >= thr).astype(int)
-    return {"f1_micro": f1.compute(predictions=preds, references=labels, average="micro")["f1"]}
+
+    preds = logits.argmax(-1)
+    return {
+        "accuracy": acc.compute(predictions=preds, references=labels)["accuracy"],
+        "f1_macro": f1.compute(predictions=preds, references=labels, average="macro")["f1"],
+    }
 
 # --------- training args (no W&B) ---------
 args = TrainingArguments(
-    output_dir=f"distilbert-base-uncased-omemoji",
+    output_dir=f"distilroberta-base-omemoji",
     eval_strategy="epoch",          # Transformers ≥ 4.46
     save_strategy="epoch",
     report_to="none",               # disable external loggers
@@ -115,7 +107,7 @@ args = TrainingArguments(
     per_device_train_batch_size=BATCH_TRAIN,
     per_device_eval_batch_size=BATCH_EVAL,
     num_train_epochs=EPOCHS,
-    num_warmup_steps=300,
+    warmup_ratio=0.1,
     weight_decay=0.01,
     logging_steps=500,
     seed=SEED,
@@ -140,5 +132,5 @@ from transformers import pipeline
 model.eval()
 pipe = pipeline("text-classification", model=trainer.model, tokenizer=tok, device=DEVICE,top_k=1)
 for t in ["I am so happy.", "She sounds nervous", "I regret what I said and feel sad", "I love this.", "This is awful.", "Meh, it's fine."]:
-	print(t, "->", pipe(t))
+    print(t, "->", pipe(t))
 

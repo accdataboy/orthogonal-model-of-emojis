@@ -20,3 +20,7 @@ Second pass at classification accuracy improved from 85% to 95% by "seeding" emo
 | Anger or Disgust	| 😠 |
 | Fear or Anxiety	| 😨 |
 | Sadness or Trauma	| 😭 |
+
+## Model
+
+An example model built with Python Transformers and PyTorch is at [🤗 HuggingFace](https://huggingface.co/databoyface/distilroberta-base-omemoji-v0.1)!
